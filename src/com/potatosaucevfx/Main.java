@@ -18,7 +18,10 @@ import com.fazecast.jSerialComm.*;
 
 
 public class Main {
-
+	
+	String TITLE = "Potato's Duino Controller - Version 0.4 Beta";
+	
+	
 	SerialPort chosenPort;
 	JComboBox<String> portList;
 	JButton btnConnect;
@@ -60,6 +63,7 @@ public class Main {
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.getContentPane().setLayout(null);
 		window.setResizable(false);
+		window.setTitle(TITLE);
 
 		JLabel lblLedController = new JLabel("LED Controller");
 		lblLedController.setBounds(11, 11, 175, 36);
