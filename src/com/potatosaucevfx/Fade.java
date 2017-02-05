@@ -20,6 +20,10 @@ public class Fade implements Runnable {
 		this.com = com;
 	}
 	
+	public void setSpeedMillis(int speedMillis) {
+		this.speedMilis = speedMillis;
+	}
+	
 	
 	@Override
 	public void run() {

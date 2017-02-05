@@ -3,7 +3,6 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.util.Random;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -11,8 +10,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JRadioButton;
 import javax.swing.JSlider;
-import javax.swing.JTextArea;
-import javax.swing.JToggleButton;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -34,10 +31,6 @@ public class Main {
 	JRadioButton modeRandomFading;
 	JSlider fadeSpeed;
 
-	JLabel lblColorOutput;
-
-	JTextArea debugConsole;
-	JToggleButton tglbtnShowDebugConsole;
 	JButton btnRandomColor;
 
 	JFrame window;
@@ -46,6 +39,8 @@ public class Main {
 	Communication com;
 	
 	Thread fadeThread;
+	Fade fade;
+	
 	long speedMilis = 8;
 	
 	
@@ -117,31 +112,6 @@ public class Main {
 		lblBlue.setForeground(Color.BLUE);
 		lblBlue.setFont(new Font("Segoe UI", Font.PLAIN, 20));
 		window.getContentPane().add(lblBlue);
-
-		lblColorOutput = new JLabel("Color Output");
-		lblColorOutput.setFont(new Font("Segoe UI", Font.BOLD, 30));
-		lblColorOutput.setBounds(0, 409, 186, 36);
-		window.getContentPane().add(lblColorOutput);
-
-		debugConsole = new JTextArea();
-		debugConsole.setForeground(Color.GREEN);
-		debugConsole.setBackground(Color.BLACK);
-		debugConsole.setBounds(479, 11, 305, 276);
-		debugConsole.setVisible(false);
-		window.getContentPane().add(debugConsole);
-
-		tglbtnShowDebugConsole = new JToggleButton("Show Debug Console");
-		tglbtnShowDebugConsole.setBounds(336, 11, 133, 23);
-		tglbtnShowDebugConsole.setSelected(false);
-		window.getContentPane().add(tglbtnShowDebugConsole);
-
-		tglbtnShowDebugConsole.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				dPrintln(tglbtnShowDebugConsole.isSelected() + "");
-				debugConsole.setVisible(tglbtnShowDebugConsole.isSelected());
-			}
-		});
 		
 		fadeSpeed = new JSlider();
 		fadeSpeed.setBounds(129, 133, 200, 26);
@@ -153,7 +123,7 @@ public class Main {
 		fadeSpeed.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				speedMilis = fadeSpeed.getValue();
+				fade.setSpeedMillis(fadeSpeed.getValue());
 			}
 		});
 		
@@ -185,7 +155,8 @@ public class Main {
 				blueSlider.setEnabled(false);
 				btnRandomColor.setEnabled(false);
 				
-				fadeThread = new Thread(new Fade(currentMode, com));
+				fade = new Fade(currentMode, com);
+				fadeThread = new Thread(fade);
 				fadeThread.start();
 				
 			}
@@ -199,6 +170,7 @@ public class Main {
 				if(currentMode == Mode.FADING) {
 					currentMode = Mode.CUSTOM;
 					modeRandomFading.setSelected(false);
+					fadeThread.stop();
 				}
 				
 				fadeSpeed.setEnabled(false);
@@ -298,7 +270,8 @@ public class Main {
 					sender.start();
 					chosenPort.openPort();
 					
-					fadeThread = new Thread(new Fade(currentMode, com));
+					fade = new Fade(currentMode, com);
+					fadeThread = new Thread(fade);
 					fadeThread.start();
 					
 				} else {
@@ -311,16 +284,6 @@ public class Main {
 		});
 	}
 	
-	
-
-	public void dPrintln(String in) {
-		debugConsole.append(in + "\n");
-	}
-
-	public void dPrint(String in) {
-		debugConsole.append(in);
-	}
-
 	public static void main(String[] args) {
 		new Main();
 	}
