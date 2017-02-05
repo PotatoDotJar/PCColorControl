@@ -9,6 +9,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JRadioButton;
 import javax.swing.JSlider;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
@@ -28,6 +29,10 @@ public class Main {
 	JSlider redSlider;
 	JSlider greenSlider;
 	JSlider blueSlider;
+	
+	JRadioButton modeCustom;
+	JRadioButton modeRandomFading;
+	JSlider fadeSpeed;
 
 	JLabel lblColorOutput;
 
@@ -36,13 +41,23 @@ public class Main {
 	JButton btnRandomColor;
 
 	JFrame window;
-
-	byte[] rgbOut = new byte[3];
-
-	public void initialize() {
-
+	
+	Thread sender;
+	Communication com;
+	
+	Thread fadeThread;
+	long speedMilis = 8;
+	
+	
+	public enum Mode {
+		CUSTOM, FADING
 	}
+	
+	
+	// Init Status
+	Mode currentMode = Mode.FADING;
 
+	
 	public Main() {
 		window = new JFrame();
 		//window.getContentPane().setFont(new Font("Segoe UI", Font.PLAIN, 11));
@@ -74,7 +89,7 @@ public class Main {
 		window.getContentPane().add(redSlider);
 
 		JLabel lblRed = new JLabel("Red");
-		lblRed.setBounds(0, 298, 34, 27);
+		lblRed.setBounds(11, 298, 34, 27);
 		lblRed.setForeground(Color.RED);
 		lblRed.setFont(new Font("Segoe UI", Font.PLAIN, 20));
 		window.getContentPane().add(lblRed);
@@ -86,7 +101,7 @@ public class Main {
 		window.getContentPane().add(greenSlider);
 
 		JLabel lblGreen = new JLabel("Green");
-		lblGreen.setBounds(0, 334, 52, 27);
+		lblGreen.setBounds(11, 334, 52, 27);
 		lblGreen.setForeground(Color.GREEN);
 		lblGreen.setFont(new Font("Segoe UI", Font.PLAIN, 20));
 		window.getContentPane().add(lblGreen);
@@ -98,7 +113,7 @@ public class Main {
 		window.getContentPane().add(blueSlider);
 
 		JLabel lblBlue = new JLabel("Blue");
-		lblBlue.setBounds(0, 371, 37, 27);
+		lblBlue.setBounds(11, 371, 37, 27);
 		lblBlue.setForeground(Color.BLUE);
 		lblBlue.setFont(new Font("Segoe UI", Font.PLAIN, 20));
 		window.getContentPane().add(lblBlue);
@@ -128,6 +143,80 @@ public class Main {
 			}
 		});
 		
+		fadeSpeed = new JSlider();
+		fadeSpeed.setBounds(129, 133, 200, 26);
+		window.getContentPane().add(fadeSpeed);
+		fadeSpeed.setMaximum(10);
+		fadeSpeed.setMinimum(1);
+		fadeSpeed.setValue((int) speedMilis);
+		fadeSpeed.setPaintLabels(true);
+		fadeSpeed.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				speedMilis = fadeSpeed.getValue();
+			}
+		});
+		
+		JLabel lblFadeSpeed = new JLabel("Fade Speed");
+		lblFadeSpeed.setForeground(Color.ORANGE);
+		lblFadeSpeed.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+		lblFadeSpeed.setBounds(21, 132, 107, 27);
+		window.getContentPane().add(lblFadeSpeed);
+		
+		
+		
+		modeRandomFading = new JRadioButton("Random Fading");
+		modeRandomFading.setBounds(11, 102, 116, 23);
+		window.getContentPane().add(modeRandomFading);
+		modeRandomFading.setSelected(true);
+		
+		modeRandomFading.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(currentMode == Mode.CUSTOM) {
+					currentMode = Mode.FADING;
+					modeCustom.setSelected(false);
+					
+				}
+				
+				fadeSpeed.setEnabled(true);
+				
+				redSlider.setEnabled(false);
+				greenSlider.setEnabled(false);
+				blueSlider.setEnabled(false);
+				btnRandomColor.setEnabled(false);
+				
+				fadeThread = new Thread(new Fade(currentMode, com));
+				fadeThread.start();
+				
+			}
+		});
+		
+		modeCustom = new JRadioButton("Custom");
+		modeCustom.setBounds(6, 268, 76, 23);
+		window.getContentPane().add(modeCustom);
+		modeCustom.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(currentMode == Mode.FADING) {
+					currentMode = Mode.CUSTOM;
+					modeRandomFading.setSelected(false);
+				}
+				
+				fadeSpeed.setEnabled(false);
+				
+				redSlider.setEnabled(true);
+				greenSlider.setEnabled(true);
+				blueSlider.setEnabled(true);
+				btnRandomColor.setEnabled(true);
+				
+				
+				com.sendToRGBBuffer(new byte[] {
+					(byte) redSlider.getValue(),
+					(byte) greenSlider.getValue(),
+					(byte) blueSlider.getValue()
+				});	
+			}
+		});
+		
 		btnRandomColor = new JButton("Random Color");
 		btnRandomColor.setFont(new Font("Segoe UI", Font.PLAIN, 11));
 		btnRandomColor.setBounds(293, 335, 107, 23);
@@ -135,40 +224,50 @@ public class Main {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				Random rand = new Random();
-				rgbOut[0] = (byte) rand.nextInt(256);
-				rgbOut[1] = (byte) rand.nextInt(256);
-				rgbOut[2] = (byte) rand.nextInt(256);
 				
-				redSlider.setValue(rgbOut[0]);
-				greenSlider.setValue(rgbOut[1]);
-				blueSlider.setValue(rgbOut[2]);
+				byte[] randomRGB = new byte[3];
+				randomRGB[0] = (byte) rand.nextInt(256);
+				randomRGB[1] = (byte) rand.nextInt(256);
+				randomRGB[2] = (byte) rand.nextInt(256);
+				
+				redSlider.setValue(randomRGB[0]);
+				greenSlider.setValue(randomRGB[1]);
+				blueSlider.setValue(randomRGB[2]);
+				com.sendToRGBBuffer(randomRGB);
 				
 			}
 		});
 		
 		
 		window.getContentPane().add(btnRandomColor);
-		
+		byte[] sliderBuffer = new byte[3];
 		redSlider.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				rgbOut[0] = (byte) redSlider.getValue();
-
+				sliderBuffer[0] = (byte) redSlider.getValue();
+				com.sendToRGBBuffer(sliderBuffer);
 			}
 		});
 
 		greenSlider.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				rgbOut[1] = (byte) greenSlider.getValue();
+				sliderBuffer[1] = (byte) greenSlider.getValue();
+				com.sendToRGBBuffer(sliderBuffer);
 			}
 		});
 
 		blueSlider.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				rgbOut[2] = (byte) blueSlider.getValue();
-
+				sliderBuffer[2] = (byte) blueSlider.getValue();
+				com.sendToRGBBuffer(sliderBuffer);
 			}
 		});
-
+		redSlider.setEnabled(false);
+		greenSlider.setEnabled(false);
+		blueSlider.setEnabled(false);
+		btnRandomColor.setEnabled(false);
+		
+		
+		
 		// Show window
 		window.setVisible(true);
 
@@ -192,61 +291,27 @@ public class Main {
 						btnConnect.setText("Disconnect");
 						portList.setEnabled(false);
 					}
-
+					
 					// create thread for sending data
-					Thread sender = new Thread() {
-						@Override
-						public void run() {
-							while(chosenPort.isOpen()) {
-								try {
-									chosenPort.getOutputStream().write(rgbOut);
-									
-									Thread.sleep(1);
-								} catch (IOException e) {
-									e.printStackTrace();
-								} catch (InterruptedException e) {
-									e.printStackTrace();
-								}
-							}
-						}
-					};
+					com = new Communication(chosenPort);
+					sender = new Thread(com);
 					sender.start();
-
-
-					Thread thread = new Thread() {
-						@Override
-						public void run() {
-							while(chosenPort.isOpen()) {
-								
-
-								lblColorOutput.setForeground(new Color(redSlider.getValue(), greenSlider.getValue(), blueSlider.getValue()));
-							
-								window.repaint();
-							}
-						}
-					};
-					thread.start();
 					chosenPort.openPort();
-
+					
+					fadeThread = new Thread(new Fade(currentMode, com));
+					fadeThread.start();
+					
 				} else {
 					// Disconnect from serial port
 					chosenPort.closePort();
 					portList.setEnabled(true);
 					btnConnect.setText("Connect");
-
 				}
-
 			}
 		});
-
-
-
-
-
-
-
-
 	}
+	
+	
 
 	public void dPrintln(String in) {
 		debugConsole.append(in + "\n");
@@ -255,22 +320,6 @@ public class Main {
 	public void dPrint(String in) {
 		debugConsole.append(in);
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	public static void main(String[] args) {
 		new Main();
